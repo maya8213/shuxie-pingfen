@@ -1,0 +1,1793 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>高新区一小学生书写水平打分系统</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <script src="https://cdn.bootcdn.net/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #2563eb; --primary-dark: #1d4ed8; --primary-light: #dbeafe;
+            --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+            --g50: #f8fafc; --g100: #f1f5f9; --g200: #e2e8f0; --g300: #cbd5e1;
+            --g400: #94a3b8; --g500: #64748b; --g600: #475569; --g700: #334155;
+            --g800: #1e293b; --g900: #0f172a;
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #e0e7ff 0%, #f0f4f8 50%, #e0f2fe 100%);
+            color: var(--g800); min-height: 100vh; min-height: 100dvh; -webkit-text-size-adjust: 100%;
+        }
+        .app { max-width: 480px; margin: 0 auto; min-height: 100vh; min-height: 100dvh; position: relative; }
+        .screen {
+            display: none; min-height: 100vh; min-height: 100dvh;
+            padding: 20px; padding-top: max(20px, env(safe-area-inset-top));
+            padding-bottom: max(20px, env(safe-area-inset-bottom));
+            animation: fadeIn 0.3s ease;
+        }
+        .screen.active { display: flex; flex-direction: column; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .header { text-align: center; padding: 24px 0 20px; }
+        .school-badge {
+            width: 64px; height: 64px;
+            background: linear-gradient(135deg, var(--primary), #7c3aed);
+            border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+            margin-bottom: 12px; box-shadow: var(--shadow-lg);
+        }
+        .school-badge svg { width: 34px; height: 34px; }
+        .header h1 { font-size: 19px; font-weight: 700; color: var(--g900); line-height: 1.4; }
+        .header .subtitle { font-size: 13px; color: var(--g500); margin-top: 4px; }
+        .card { background: white; border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); }
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; font-size: 14px; font-weight: 600; color: var(--g700); margin-bottom: 5px; }
+        .form-group input, .form-group select {
+            width: 100%; height: 46px; padding: 0 14px;
+            border: 1.5px solid var(--g200); border-radius: 10px;
+            font-size: 16px; color: var(--g800); background: var(--g50);
+            transition: border-color 0.2s, box-shadow 0.2s;
+            -webkit-appearance: none; appearance: none;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); background: white;
+        }
+        .form-group select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px;
+        }
+        .form-row { display: flex; gap: 12px; }
+        .form-row .form-group { flex: 1; }
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            height: 46px; padding: 0 20px; border: none; border-radius: 10px;
+            font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+            width: 100%; gap: 8px; text-decoration: none;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:active { background: var(--primary-dark); transform: scale(0.98); }
+        .btn-primary:disabled { background: var(--g300); cursor: not-allowed; }
+        .btn-outline { background: white; color: var(--primary); border: 1.5px solid var(--primary); }
+        .btn-outline:active { background: var(--primary-light); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:active { background: #059669; transform: scale(0.98); }
+        .btn-ghost { background: transparent; color: var(--g500); height: 40px; font-size: 14px; font-weight: 500; }
+        .btn-ghost:active { background: rgba(0,0,0,0.05); border-radius: 8px; }
+        .btn-danger-ghost { background: transparent; color: var(--danger); height: 40px; font-size: 14px; font-weight: 500; }
+        .btn svg { width: 20px; height: 20px; flex-shrink: 0; }
+        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 8px 0 16px; }
+        .user-info { font-size: 14px; color: var(--g600); }
+        .user-info strong { color: var(--g800); }
+        .nav-actions { display: flex; gap: 4px; align-items: center; }
+        .capture-area { display: flex; flex-direction: column; gap: 12px; flex: 1; justify-content: center; }
+        .capture-btn {
+            height: 120px; border: 2px dashed var(--g300); border-radius: var(--radius);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: white; cursor: pointer; transition: all 0.2s; gap: 8px;
+        }
+        .capture-btn:active { background: var(--primary-light); border-color: var(--primary); }
+        .capture-btn svg { width: 36px; height: 36px; }
+        .capture-btn span { font-size: 15px; color: var(--g600); font-weight: 500; }
+        .capture-btn .hint { font-size: 12px; color: var(--g400); font-weight: 400; }
+        .preview-image { width: 100%; max-height: 360px; object-fit: contain; border-radius: var(--radius); background: var(--g100); display: block; }
+        .loading-container { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .spinner { width: 48px; height: 48px; border: 4px solid var(--g200); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { margin-top: 16px; font-size: 16px; color: var(--g600); font-weight: 500; }
+        .loading-hint { margin-top: 8px; font-size: 13px; color: var(--g400); }
+        .score-hero { text-align: center; padding: 16px 0; }
+        .score-ring { width: 130px; height: 130px; margin: 0 auto 12px; position: relative; display: flex; align-items: center; justify-content: center; }
+        .score-ring svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+        .score-ring circle { fill: none; stroke-width: 6; cx: 65; cy: 65; r: 58; }
+        .score-ring .bg { stroke: var(--g200); }
+        .score-ring .fg { stroke-linecap: round; transition: stroke-dashoffset 1s ease, stroke 0.3s; }
+        .score-number { font-size: 44px; font-weight: 800; line-height: 1; position: relative; z-index: 1; }
+        .score-total { font-size: 14px; color: var(--g400); position: relative; z-index: 1; }
+        .score-level { display: inline-block; padding: 5px 20px; border-radius: 20px; font-size: 14px; font-weight: 600; margin-top: 8px; }
+        .level-excellent { background: #dcfce7; color: #166534; }
+        .level-good { background: #dbeafe; color: #1e40af; }
+        .level-pass { background: #fef3c7; color: #92400e; }
+        .level-improve { background: #fee2e2; color: #991b1b; }
+        .dimension-item { margin-bottom: 12px; }
+        .dimension-header { display: flex; justify-content: space-between; margin-bottom: 4px; }
+        .dimension-name { font-size: 14px; font-weight: 500; color: var(--g700); }
+        .dimension-score { font-size: 14px; font-weight: 700; color: var(--g800); }
+        .dimension-bar { height: 8px; background: var(--g200); border-radius: 4px; overflow: hidden; }
+        .dimension-bar-fill { height: 100%; border-radius: 4px; transition: width 0.8s ease; }
+        .dimension-comment { font-size: 12px; color: var(--g500); margin-top: 3px; }
+        .section-title { font-size: 15px; font-weight: 700; color: var(--g800); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+        .section-title .dot { width: 4px; height: 16px; border-radius: 2px; }
+        .result-section { margin-top: 16px; }
+        .problem-list, .suggestion-list { list-style: none; }
+        .problem-list li, .suggestion-list li { padding: 10px 12px; margin-bottom: 6px; border-radius: 8px; font-size: 14px; line-height: 1.6; }
+        .problem-list li { background: #fef2f2; color: #991b1b; border-left: 3px solid #ef4444; }
+        .suggestion-list li { background: #f0fdf4; color: #166534; border-left: 3px solid #10b981; }
+        .overall-comment { padding: 14px; background: var(--primary-light); border-radius: 10px; font-size: 14px; line-height: 1.7; color: var(--g700); }
+        .result-actions { display: flex; gap: 10px; margin-top: 20px; padding-bottom: 20px; }
+        .result-actions .btn { flex: 1; }
+        .student-name-bar { display: flex; align-items: center; gap: 8px; background: white; padding: 10px 14px; border-radius: 10px; margin-bottom: 12px; box-shadow: var(--shadow); }
+        .student-name-bar label { font-size: 14px; font-weight: 600; color: var(--g700); white-space: nowrap; }
+        .student-name-bar input { flex: 1; border: 1px solid var(--g200); border-radius: 6px; padding: 6px 10px; font-size: 15px; color: var(--g800); background: var(--g50); }
+        .student-name-bar input:focus { outline: none; border-color: var(--primary); background: white; }
+        .error-msg { font-size: 13px; color: var(--danger); margin-top: 8px; display: none; text-align: center; }
+        .error-msg.show { display: block; }
+        .result-thumb { width: 100%; max-height: 180px; object-fit: contain; border-radius: 8px; background: var(--g100); margin-bottom: 12px; }
+        .result-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .hidden-input { display: none; }
+        .grade-badge { display: inline-block; background: var(--primary); color: white; padding: 2px 10px; border-radius: 12px; font-size: 13px; font-weight: 600; }
+        .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: var(--g800); color: white; padding: 10px 20px; border-radius: 8px; font-size: 14px; z-index: 999; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+        .toast.show { opacity: 1; }
+        .batch-link { display: block; text-align: center; margin-top: 14px; font-size: 14px; color: var(--primary); text-decoration: underline; cursor: pointer; padding: 8px; }
+        .batch-link:active { color: var(--primary-dark); }
+        /* 历史记录表 */
+        .history-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 16px; }
+        .history-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 500px; background: white; border-radius: 10px; overflow: hidden; box-shadow: var(--shadow); }
+        .history-table th { background: var(--primary); color: white; padding: 10px 8px; text-align: left; font-weight: 600; white-space: nowrap; }
+        .history-table td { padding: 9px 8px; border-bottom: 1px solid var(--g200); white-space: nowrap; }
+        .history-table tr:last-child td { border-bottom: none; }
+        .history-table tr:nth-child(even) { background: var(--g50); }
+        .history-empty { text-align: center; padding: 40px 20px; color: var(--g400); font-size: 15px; }
+        .history-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+        .stat-card { background: white; border-radius: 10px; padding: 14px; text-align: center; box-shadow: var(--shadow); }
+        .stat-num { font-size: 24px; font-weight: 800; color: var(--primary); }
+        .stat-label { font-size: 12px; color: var(--g500); margin-top: 2px; }
+        .history-actions { display: flex; gap: 10px; margin-bottom: 16px; }
+        .history-actions .btn { flex: 1; height: 42px; font-size: 14px; }
+        /* 分析报告 */
+        .report-content { background: white; border-radius: 10px; padding: 20px; box-shadow: var(--shadow); font-size: 14px; line-height: 1.8; color: var(--g700); white-space: pre-wrap; word-break: break-word; }
+        .report-actions { display: flex; gap: 10px; margin-top: 16px; padding-bottom: 20px; }
+        .report-actions .btn { flex: 1; }
+        @media (max-width: 380px) {
+            .screen { padding: 16px; }
+            .card { padding: 20px; }
+            .score-number { font-size: 38px; }
+            .score-ring { width: 110px; height: 110px; }
+        }
+        /* 图片全屏查看器 */
+        .image-viewer {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 1001;
+            display: flex; align-items: center; justify-content: center;
+            animation: fadeIn 0.2s ease;
+            overflow: hidden; touch-action: none;
+        }
+        .image-viewer img {
+            max-width: 100%; max-height: 100%; object-fit: contain;
+            touch-action: none; user-select: none; -webkit-user-select: none;
+            transform-origin: 0 0; will-change: transform;
+        }
+        .image-viewer-close {
+            position: fixed; top: max(12px, env(safe-area-inset-top)); right: 12px;
+            width: 36px; height: 36px; border-radius: 50%;
+            background: rgba(255,255,255,0.2); border: none; color: white;
+            font-size: 22px; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; z-index: 1002;
+        }
+        .image-viewer-hint {
+            position: fixed; bottom: max(20px, env(safe-area-inset-bottom)); left: 50%;
+            transform: translateX(-50%); color: rgba(255,255,255,0.6); font-size: 13px;
+        }
+        .result-thumb { cursor: pointer; }
+        /* 教程弹窗 */
+        .tutorial-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000;
+            display: flex; align-items: center; justify-content: center; padding: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+        .tutorial-card {
+            background: white; border-radius: 16px; padding: 28px 24px; max-width: 340px; width: 100%;
+            text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        .tutorial-card h3 { font-size: 18px; color: var(--g900); margin-bottom: 12px; }
+        .tutorial-card p { font-size: 14px; color: var(--g600); line-height: 1.8; margin-bottom: 20px; }
+        .tutorial-card .btn { width: 100%; }
+    </style>
+</head>
+<body>
+<div class="app">
+
+    <!-- ===== 登录页 ===== -->
+    <div id="screen-login" class="screen active">
+        <div class="header">
+            <div class="school-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                    <line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="13" y2="11"/>
+                </svg>
+            </div>
+            <h1>高新区一小<br>学生书写水平打分系统</h1>
+            <div class="subtitle">承德高新区第一小学 教师专用</div>
+        </div>
+        <div class="card">
+            <div class="form-group">
+                <label>教师姓名</label>
+                <input type="text" id="login-name" placeholder="请输入您的姓名" autocomplete="name">
+            </div>
+            <div class="form-group">
+                <label>登录密码</label>
+                <input type="password" id="login-password" placeholder="请输入密码" autocomplete="current-password">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>年级</label>
+                    <select id="login-grade">
+                        <option value="">选择年级</option>
+                        <option value="1">一年级</option>
+                        <option value="2">二年级</option>
+                        <option value="3">三年级</option>
+                        <option value="4">四年级</option>
+                        <option value="5">五年级</option>
+                        <option value="6">六年级</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>班级</label>
+                    <select id="login-class">
+                        <option value="">选择班级</option>
+                        <option value="1">1班</option><option value="2">2班</option>
+                        <option value="3">3班</option><option value="4">4班</option>
+                        <option value="5">5班</option><option value="6">6班</option>
+                        <option value="7">7班</option><option value="8">8班</option>
+                        <option value="9">9班</option><option value="10">10班</option>
+                        <option value="11">11班</option><option value="12">12班</option>
+                        <option value="13">13班</option><option value="14">14班</option>
+                        <option value="15">15班</option><option value="16">16班</option>
+                    </select>
+                </div>
+            </div>
+            <div id="login-error" class="error-msg"></div>
+            <button class="btn btn-primary" style="margin-top:8px" onclick="handleLogin()">登 录</button>
+        </div>
+    </div>
+
+    <!-- ===== 主页 ===== -->
+    <div id="screen-main" class="screen">
+        <div class="navbar">
+            <div class="user-info">
+                <strong id="main-teacher-name"></strong>
+                <span class="grade-badge" id="main-grade-badge"></span>
+            </div>
+            <div class="nav-actions">
+                <button class="btn-ghost" onclick="showHistory()" title="历史评分" style="display:flex;align-items:center;gap:3px">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+                    </svg>
+                    历史
+                </button>
+                <button class="btn-danger-ghost" onclick="handleLogout()">退出</button>
+            </div>
+        </div>
+        <div style="text-align:center;margin:8px 0">
+            <div style="font-size:15px;color:var(--g600)">请拍摄或上传学生书写作品</div>
+        </div>
+        <div class="capture-area">
+            <div class="capture-btn" onclick="document.getElementById('input-camera').click()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
+                </svg>
+                <span>拍照评分</span>
+                <span class="hint">点击打开摄像头拍摄书写作品</span>
+            </div>
+            <div class="capture-btn" onclick="document.getElementById('input-gallery').click()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                </svg>
+                <span>从相册/微信选择</span>
+                <span class="hint">支持从相册或微信聊天中选取图片</span>
+            </div>
+            <div class="capture-btn" onclick="pasteFromClipboard()" style="height:80px">
+                <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:28px;height:28px">
+                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                </svg>
+                <span>粘贴图片</span>
+            </div>
+        </div>
+        <input type="file" id="input-camera" class="hidden-input" accept="image/*" capture="environment" onchange="handleImageSelected(this)">
+        <input type="file" id="input-gallery" class="hidden-input" accept="image/*" onchange="handleImageSelected(this)">
+        <div style="text-align:center;margin-top:12px">
+            <span class="batch-link" onclick="shareAppLink()">分享本系统给其他老师</span>
+        </div>
+    </div>
+
+    <!-- ===== 预览页 ===== -->
+    <div id="screen-preview" class="screen">
+        <div class="navbar">
+            <button class="btn-ghost" onclick="showScreen('main')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg> 返回
+            </button>
+            <div class="user-info"><span class="grade-badge" id="preview-grade-badge"></span></div>
+        </div>
+        <img id="preview-img" class="preview-image" src="" alt="书写作品预览">
+        <div class="form-group" style="margin-top:12px">
+            <label>学生姓名 <span id="name-hint" style="color:#ef4444;font-weight:400;font-size:12px"></span></label>
+            <input type="text" id="student-name" placeholder="AI正在识别中...">
+        </div>
+        <div style="margin-top:12px">
+            <button class="btn btn-primary" onclick="startScoring()">开始评分</button>
+        </div>
+        <div style="margin-top:10px">
+            <button class="btn btn-outline" onclick="showScreen('main')">重新选择</button>
+        </div>
+    </div>
+
+    <!-- ===== 加载页 ===== -->
+    <div id="screen-loading" class="screen">
+        <div class="loading-container">
+            <div class="spinner"></div>
+            <div class="loading-text">正在分析书写作品...</div>
+            <div class="loading-hint">AI正在仔细评估每个维度，请稍候</div>
+        </div>
+    </div>
+
+    <!-- ===== 结果页 ===== -->
+    <div id="screen-result" class="screen">
+        <div class="navbar">
+            <button class="btn-ghost" onclick="showScreen('main')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg> 返回首页
+            </button>
+            <div class="user-info"><span class="grade-badge" id="result-grade-badge"></span></div>
+        </div>
+        <div class="result-scroll">
+            <div class="student-name-bar">
+                <label>学生：</label>
+                <input type="text" id="result-student-name" placeholder="未识别到姓名">
+            </div>
+            <img id="result-thumb" class="result-thumb" src="" alt="" onclick="openImageViewer(this.src)">
+            <div class="score-hero">
+                <div class="score-ring">
+                    <svg viewBox="0 0 130 130"><circle class="bg"/><circle class="fg" id="score-ring-fg"/></svg>
+                    <div>
+                        <div class="score-number" id="result-score">0</div>
+                        <div class="score-total">/ 10分</div>
+                    </div>
+                </div>
+                <div><span class="score-level" id="result-level"></span></div>
+            </div>
+            <div id="result-overall" class="overall-comment" style="display:none"></div>
+            <div class="result-section">
+                <div class="section-title"><span class="dot" style="background:var(--primary)"></span>各维度得分</div>
+                <div class="card" id="result-dimensions"></div>
+            </div>
+            <div class="result-section" id="result-problems-section" style="display:none">
+                <div class="section-title"><span class="dot" style="background:var(--danger)"></span>存在问题</div>
+                <ul class="problem-list" id="result-problems"></ul>
+            </div>
+            <div class="result-section" id="result-suggestions-section" style="display:none">
+                <div class="section-title"><span class="dot" style="background:var(--success)"></span>改进建议</div>
+                <ul class="suggestion-list" id="result-suggestions"></ul>
+            </div>
+            <div class="result-actions">
+                <button class="btn btn-outline" onclick="shareResult()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                    </svg>
+                    分享到微信
+                </button>
+                <button class="btn btn-primary" onclick="showScreen('main')">继续评分</button>
+            </div>
+            <span class="batch-link" onclick="showHistory()">查看历史评分 / 批量导出分析</span>
+        </div>
+    </div>
+
+    <!-- ===== 错误页 ===== -->
+    <div id="screen-error" class="screen">
+        <div class="navbar">
+            <button class="btn-ghost" onclick="showScreen('main')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg> 返回
+            </button>
+        </div>
+        <div class="loading-container">
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <div class="loading-text" style="color:var(--danger)">评分失败</div>
+            <div id="error-detail" style="margin-top:12px;font-size:14px;color:var(--g500);text-align:center;padding:0 20px;line-height:1.6"></div>
+            <div style="margin-top:24px;width:100%;padding:0 40px">
+                <button class="btn btn-outline" onclick="startScoring()">重新评分</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 历史评分页 ===== -->
+    <div id="screen-history" class="screen">
+        <div class="navbar">
+            <button class="btn-ghost" onclick="showScreen('main')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg> 返回
+            </button>
+            <div style="font-size:16px;font-weight:600">历史评分</div>
+            <div style="width:50px"></div>
+        </div>
+        <div id="history-stats" class="history-stats"></div>
+        <div class="history-actions">
+            <button class="btn btn-outline" onclick="exportExcel()" style="font-size:13px">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                导出Excel
+            </button>
+            <button class="btn btn-success" onclick="generateReport()" style="font-size:13px">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                生成教学分析
+            </button>
+        </div>
+        <div class="history-table-wrap" id="history-table-wrap"></div>
+    </div>
+
+    <!-- ===== 分析报告页 ===== -->
+    <div id="screen-report" class="screen">
+        <div class="navbar">
+            <button class="btn-ghost" onclick="showHistory()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg> 返回
+            </button>
+            <div style="font-size:16px;font-weight:600">教学分析报告</div>
+            <div style="width:50px"></div>
+        </div>
+        <div class="result-scroll">
+            <div class="report-content" id="report-content"></div>
+            <div class="report-actions">
+                <button class="btn btn-outline" onclick="shareReport()">分享报告</button>
+                <button class="btn btn-primary" onclick="showHistory()">返回历史</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 图片全屏查看器 -->
+    <div id="image-viewer" style="display:none" class="image-viewer">
+        <button class="image-viewer-close" onclick="closeImageViewer()">&times;</button>
+        <img id="viewer-img" src="" alt="放大查看" draggable="false">
+        <div class="image-viewer-hint">双指缩放 · 双击放大 · 点击关闭</div>
+    </div>
+
+    <!-- 教程弹窗 -->
+    <div id="tutorial-overlay" class="tutorial-overlay" style="display:none" onclick="closeTutorial()">
+        <div class="tutorial-card" onclick="event.stopPropagation()">
+            <div class="school-badge" style="margin:0 auto 12px">
+                <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                    <line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="13" y2="11"/>
+                </svg>
+            </div>
+            <h3>欢迎使用书写评分系统</h3>
+            <p>拍摄或上传学生书写作品，AI将从笔画规范、结构匀称、行款整齐、卷面整洁等维度严格评分（满分10分），并给出专业改进建议。</p>
+            <button class="btn btn-primary" onclick="closeTutorial()">我知道了</button>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+    <!-- 调试面板（手机端查看日志） -->
+    <div id="debug-panel" style="position:fixed;bottom:0;left:0;right:0;max-height:35vh;overflow-y:auto;background:rgba(0,0,0,0.88);color:#0f0;font:11px/1.5 monospace;padding:8px 10px;z-index:9999;display:none">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+            <span style="color:#ff0;font-weight:bold">调试日志</span>
+            <span onclick="document.getElementById('debug-panel').style.display='none'" style="color:#f66;cursor:pointer;padding:2px 8px">关闭</span>
+        </div>
+        <div id="debug-log"></div>
+    </div>
+    <!-- Excel下载对话框 -->
+    <div id="dl-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:flex-end;justify-content:center">
+        <div style="background:#fff;border-radius:16px 16px 0 0;padding:24px 20px 32px;width:100%;max-width:480px">
+            <div style="font-size:16px;font-weight:700;margin-bottom:8px">保存 Excel 文件</div>
+            <div style="font-size:13px;color:#64748b;margin-bottom:18px" id="dl-hint"></div>
+            <a id="dl-link" style="display:block;text-align:center;background:#2563eb;color:#fff;border-radius:10px;padding:13px;font-size:15px;font-weight:600;text-decoration:none;margin-bottom:12px">点击下载 Excel</a>
+            <div style="font-size:12px;color:#94a3b8;text-align:center;margin-bottom:16px">微信内可长按链接→选择"下载链接"或用浏览器打开后保存</div>
+            <button onclick="document.getElementById('dl-modal').style.display='none'" style="width:100%;height:44px;background:#f1f5f9;border:none;border-radius:10px;font-size:15px;color:#475569;cursor:pointer">关闭</button>
+        </div>
+    </div>
+
+<script>
+// ===== 配置 =====
+const PASSWORD = '2206004';
+const API_KEY = 'sk-c6d7127ba97f4184b84147e08d8548e3';
+const API_ENDPOINT = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
+const API_MODEL = 'qwen-vl-max';
+
+const RUBRICS = {
+    1: { name: '一年级', stage: '第一学段', note: '掌握基本笔画、间架结构', dimensions: [
+        { name: '笔画规范度', maxScore: 3, criteria: '3分：笔画清晰、平直、无粘连、无多余涂抹；2分：笔画基本清晰，少量变形；1分：笔画模糊、潦草、严重变形' },
+        { name: '结构匀称度', maxScore: 3, criteria: '3分：字形端正、重心平稳、大小均匀；2分：字形基本端正，局部不均；1分：字形歪斜、拥挤或松散' },
+        { name: '卷面整洁度', maxScore: 4, criteria: '4分：无涂改、无墨团、无污渍；3分：轻微涂改，整体干净；2分：明显涂改；1分：大量涂改、污渍严重' }
+    ]},
+    2: { name: '二年级', stage: '第一学段', note: '偏旁、间架结构', dimensions: [
+        { name: '字形规范度', maxScore: 3, criteria: '3分：字形完整、无缺笔、无多笔；2分：少量字形不规范；1分：多处字形错误、难以辨认' },
+        { name: '结构匀称度', maxScore: 3, criteria: '3分：偏旁位置合理、整体匀称；2分：结构基本合理；1分：结构失衡、拥挤散乱' },
+        { name: '卷面整洁度', maxScore: 4, criteria: '4分：无涂改、无墨团、无污渍；3分：轻微涂改，整体干净；2分：明显涂改；1分：大量涂改、污渍严重' }
+    ]},
+    3: { name: '三年级', stage: '第二学段', note: '熟练书写正楷、规范端正整洁', dimensions: [
+        { name: '正楷规范度', maxScore: 4, criteria: '4分：楷书标准、无连笔、无潦草；3分：基本楷书，少量不规范；2分：轻度连笔、潦草；1分：严重潦草、难以识别' },
+        { name: '结构匀称度', maxScore: 2, criteria: '2分：字形大小统一、重心稳定；1分：大小不一、结构不稳' },
+        { name: '行款整齐度', maxScore: 2, criteria: '2分：字距、行距基本均匀；1分：行款杂乱' },
+        { name: '卷面整洁度', maxScore: 2, criteria: '2分：无明显涂改、污渍；1分：有涂改或污渍' }
+    ]},
+    4: { name: '四年级', stage: '第二学段', note: '熟练正楷、规范端正整洁', dimensions: [
+        { name: '楷书工整度', maxScore: 4, criteria: '4分：笔画清晰、字形统一、无潦草；3分：工整度良好；2分：一般；1分：差' },
+        { name: '结构匀称度', maxScore: 2, criteria: '2分：字形大小统一、重心稳定；1分：大小不一、结构不稳' },
+        { name: '行款整齐度', maxScore: 2, criteria: '2分：字距、行距基本均匀；1分：行款杂乱' },
+        { name: '卷面整洁度', maxScore: 2, criteria: '2分：无明显涂改、污渍；1分：有涂改或污渍' }
+    ]},
+    5: { name: '五年级', stage: '第三学段', note: '楷书行款整齐、力求美观、有一定速度', dimensions: [
+        { name: '楷书规范度', maxScore: 2, criteria: '2分：书写规范、无随意连笔；1分：有连笔或不规范' },
+        { name: '行款整齐度', maxScore: 3, criteria: '3分：横行平直、字距行距均匀、整体对齐；2分：基本整齐；1分：明显歪斜、错位' },
+        { name: '字形美观度', maxScore: 3, criteria: '3分：结构匀称、比例协调、视觉舒适；2分：较美观；1分：不美观' },
+        { name: '卷面整洁度', maxScore: 2, criteria: '2分：无明显涂改、污渍；1分：有涂改或污渍' }
+    ]},
+    6: { name: '六年级', stage: '第三学段', note: '行款整齐、美观、有一定速度', dimensions: [
+        { name: '整体规范度', maxScore: 2, criteria: '2分：书写规范、无随意连笔；1分：有不规范之处' },
+        { name: '行款整齐度', maxScore: 3, criteria: '3分：横行平直、字距行距均匀、整体对齐；2分：基本整齐；1分：明显歪斜、错位' },
+        { name: '整体美观度', maxScore: 3, criteria: '3分：结构匀称、比例协调、视觉舒适；2分：较美观；1分：不美观' },
+        { name: '卷面整洁度', maxScore: 2, criteria: '2分：无明显涂改、污渍；1分：有涂改或污渍' }
+    ]}
+};
+const GRADE_NAMES = {1:'一',2:'二',3:'三',4:'四',5:'五',6:'六'};
+
+// ===== 状态 =====
+let state = { teacher: '', grade: 0, classNum: 0, imageBase64: '', imageDataUrl: '', annotatedDataUrl: '', studentName: '' };
+let lastResult = null;
+
+// ===== 工具 =====
+function $(id) { return document.getElementById(id); }
+function showScreen(name) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    $('screen-' + name).classList.add('active');
+    if (name === 'main') { $('input-camera').value = ''; $('input-gallery').value = ''; }
+}
+function showToast(msg) {
+    const t = $('toast'); t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+}
+// 调试日志——同时显示在页面调试面板和console
+function debugLog(msg) {
+    console.log(msg);
+    const panel = document.getElementById('debug-panel');
+    const log = document.getElementById('debug-log');
+    if (panel && log) {
+        panel.style.display = 'block';
+        const now = new Date();
+        const ts = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ':' + String(now.getSeconds()).padStart(2,'0');
+        log.innerHTML += '<div style="border-bottom:1px solid #333;padding:2px 0"><span style="color:#888">' + ts + '</span> ' + String(msg).replace(/</g,'&lt;') + '</div>';
+        panel.scrollTop = panel.scrollHeight;
+    }
+}
+function escapeHtml(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+function formatTime(ts) {
+    const d = new Date(ts);
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0') + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+}
+
+// ===== 登录 =====
+function handleLogin() {
+    const name = $('login-name').value.trim();
+    const pwd = $('login-password').value;
+    const grade = $('login-grade').value;
+    const cls = $('login-class').value;
+    const err = $('login-error');
+    if (!name) { err.textContent = '请输入教师姓名'; err.classList.add('show'); return; }
+    if (!pwd) { err.textContent = '请输入密码'; err.classList.add('show'); return; }
+    if (pwd !== PASSWORD) { err.textContent = '密码错误，请重新输入'; err.classList.add('show'); return; }
+    if (!grade) { err.textContent = '请选择年级'; err.classList.add('show'); return; }
+    if (!cls) { err.textContent = '请选择班级'; err.classList.add('show'); return; }
+    err.classList.remove('show');
+    state.teacher = name;
+    state.grade = parseInt(grade);
+    state.classNum = parseInt(cls);
+    $('main-teacher-name').textContent = name + ' 老师';
+    $('main-grade-badge').textContent = GRADE_NAMES[state.grade] + '年级' + state.classNum + '班';
+    sessionStorage.setItem('writing_login', JSON.stringify({ teacher: name, grade: state.grade, classNum: state.classNum }));
+    showScreen('main');
+    // 首次登录显示教程
+    if (!localStorage.getItem('writing_tutorial_shown')) {
+        $('tutorial-overlay').style.display = 'flex';
+    }
+}
+function closeTutorial() {
+    $('tutorial-overlay').style.display = 'none';
+    localStorage.setItem('writing_tutorial_shown', '1');
+}
+function handleLogout() {
+    sessionStorage.removeItem('writing_login');
+    state = { teacher: '', grade: 0, classNum: 0, imageBase64: '', imageDataUrl: '', annotatedDataUrl: '', studentName: '' };
+    $('login-name').value = ''; $('login-password').value = ''; $('login-grade').value = ''; $('login-class').value = '';
+    showScreen('login');
+}
+function tryAutoLogin() {
+    try {
+        const s = JSON.parse(sessionStorage.getItem('writing_login'));
+        if (s && s.teacher && s.grade && s.classNum) {
+            state.teacher = s.teacher; state.grade = s.grade; state.classNum = s.classNum;
+            $('main-teacher-name').textContent = s.teacher + ' 老师';
+            $('main-grade-badge').textContent = GRADE_NAMES[s.grade] + '年级' + s.classNum + '班';
+            showScreen('main');
+        }
+    } catch {}
+}
+
+// ===== 历史记录管理（IndexedDB，支持大容量） =====
+const DB_NAME = 'writing_score_db';
+const DB_VERSION = 1;
+const STORE_NAME = 'history';
+let _db = null;
+
+function openDB() {
+    if (_db) return Promise.resolve(_db);
+    return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+        req.onupgradeneeded = e => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+                const store = db.createObjectStore(STORE_NAME, { keyPath: 'time' });
+                store.createIndex('teacher', 'teacher', { unique: false });
+                store.createIndex('student', 'student', { unique: false });
+            }
+        };
+        req.onsuccess = e => { _db = e.target.result; resolve(_db); };
+        req.onerror = () => reject(req.error);
+    });
+}
+
+// 从localStorage迁移旧数据到IndexedDB（只执行一次）
+async function migrateFromLocalStorage() {
+    const migrated = localStorage.getItem('writing_history_migrated');
+    if (migrated) return;
+    const old = localStorage.getItem('writing_history');
+    if (!old) { localStorage.setItem('writing_history_migrated', '1'); return; }
+    try {
+        const records = JSON.parse(old);
+        if (records && records.length > 0) {
+            const db = await openDB();
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            const store = tx.objectStore(STORE_NAME);
+            for (const r of records) { try { store.put(r); } catch {} }
+            await new Promise(res => { tx.oncomplete = res; tx.onerror = res; });
+        }
+        localStorage.setItem('writing_history_migrated', '1');
+        localStorage.removeItem('writing_history');
+    } catch {}
+}
+
+// 异步获取所有历史（返回Promise）
+async function getHistoryAsync() {
+    try {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE_NAME, 'readonly');
+            const req = tx.objectStore(STORE_NAME).getAll();
+            req.onsuccess = () => resolve(req.result || []);
+            req.onerror = () => resolve([]);
+        });
+    } catch { return []; }
+}
+
+// 同步getHistory（用于非async上下文，首次调用返回[]，后台加载完成后刷新）
+// 注意：所有调用getHistory()的地方均已改为async
+function getHistory() {
+    // 降级：仅用于兼容，正常路径走getHistoryAsync
+    return [];
+}
+
+async function saveToHistory(record) {
+    try {
+        const db = await openDB();
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        tx.objectStore(STORE_NAME).put(record);
+        await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = () => rej(tx.error); });
+    } catch (e) {
+        // IndexedDB失败时降级到localStorage
+        try {
+            const h = JSON.parse(localStorage.getItem('writing_history') || '[]');
+            h.unshift(record);
+            if (h.length > 2000) h.length = 2000;
+            localStorage.setItem('writing_history', JSON.stringify(h));
+        } catch {}
+    }
+}
+
+// 初始化时迁移旧数据
+migrateFromLocalStorage().catch(() => {});
+
+// ===== 图片处理 =====
+function handleImageSelected(input) {
+    try {
+        const file = input.files && input.files[0];
+        if (!file) return;
+        compressImage(file).then(({ base64, dataUrl }) => {
+            state.imageBase64 = base64; state.imageDataUrl = dataUrl;
+            $('preview-img').src = dataUrl;
+            $('preview-grade-badge').textContent = GRADE_NAMES[state.grade] + '年级' + state.classNum + '班';
+            $('student-name').value = '';
+            $('name-hint').textContent = '';
+            showScreen('preview');
+            // 自动识别姓名
+            recognizeName(base64);
+        }).catch(err => { showToast('图片处理失败：' + err.message); });
+    } catch (e) { showToast('选择图片失败：' + e.message); }
+}
+async function pasteFromClipboard() {
+    try {
+        if (!navigator.clipboard || !navigator.clipboard.read) {
+            showToast('当前浏览器不支持粘贴，请使用"从相册选择"');
+            return;
+        }
+        const items = await navigator.clipboard.read();
+        for (const item of items) {
+            const imageType = item.types.find(t => t.startsWith('image/'));
+            if (imageType) {
+                const blob = await item.getType(imageType);
+                const file = new File([blob], 'paste.jpg', { type: imageType });
+                const { base64, dataUrl } = await compressImage(file);
+                state.imageBase64 = base64; state.imageDataUrl = dataUrl;
+                $('preview-img').src = dataUrl;
+                $('preview-grade-badge').textContent = GRADE_NAMES[state.grade] + '年级' + state.classNum + '班';
+                $('student-name').value = '';
+                $('name-hint').textContent = '';
+                showScreen('preview');
+                // 自动识别姓名
+                recognizeName(base64);
+                return;
+            }
+        }
+        showToast('剪贴板中没有图片');
+    } catch (e) {
+        showToast('读取剪贴板失败，请使用"从相册选择"');
+    }
+}
+// ===== 读取EXIF方向标记 =====
+function getExifOrientation(arrayBuffer) {
+    const view = new DataView(arrayBuffer);
+    if (view.getUint16(0) !== 0xFFD8) return 1; // 非JPEG
+    let offset = 2;
+    while (offset < view.byteLength - 2) {
+        const marker = view.getUint16(offset);
+        offset += 2;
+        if (marker === 0xFFE1) { // APP1 (Exif)
+            const len = view.getUint16(offset);
+            const exifStart = offset + 2;
+            if (view.getUint32(exifStart) !== 0x45786966) return 1; // 非Exif
+            const tiffStart = exifStart + 6;
+            const bigEndian = view.getUint16(tiffStart) === 0x4D4D;
+            const ifdOffset = view.getUint32(tiffStart + 4, !bigEndian);
+            const numEntries = view.getUint16(tiffStart + ifdOffset, !bigEndian);
+            for (let i = 0; i < numEntries; i++) {
+                const entryOffset = tiffStart + ifdOffset + 2 + i * 12;
+                if (entryOffset + 12 > view.byteLength) break;
+                if (view.getUint16(entryOffset, !bigEndian) === 0x0112) { // Orientation tag
+                    return view.getUint16(entryOffset + 8, !bigEndian);
+                }
+            }
+            return 1;
+        } else if ((marker & 0xFF00) === 0xFF00) {
+            offset += view.getUint16(offset);
+        } else { break; }
+    }
+    return 1;
+}
+
+// ===== 根据EXIF方向变换Canvas =====
+function applyExifOrientation(ctx, orientation, w, h) {
+    switch (orientation) {
+        case 2: ctx.transform(-1, 0, 0, 1, w, 0); break;
+        case 3: ctx.transform(-1, 0, 0, -1, w, h); break;
+        case 4: ctx.transform(1, 0, 0, -1, 0, h); break;
+        case 5: ctx.transform(0, 1, 1, 0, 0, 0); break;
+        case 6: ctx.transform(0, 1, -1, 0, h, 0); break;
+        case 7: ctx.transform(0, -1, -1, 0, h, w); break;
+        case 8: ctx.transform(0, -1, 1, 0, 0, w); break;
+    }
+}
+
+// ===== 检测浏览器是否自动处理EXIF旋转 =====
+let _browserAutoRotatesExif = null;
+function detectExifAutoRotate() {
+    if (_browserAutoRotatesExif !== null) return Promise.resolve(_browserAutoRotatesExif);
+    return new Promise(resolve => {
+        const timeout = setTimeout(() => {
+            _browserAutoRotatesExif = false;
+            resolve(false);
+        }, 1000);
+        const testImg = new Image();
+        testImg.onload = () => {
+            clearTimeout(timeout);
+            _browserAutoRotatesExif = (testImg.width === 1 && testImg.height === 2);
+            debugLog('EXIF检测: autoRotate=' + _browserAutoRotatesExif + ' (' + testImg.width + 'x' + testImg.height + ')');
+            resolve(_browserAutoRotatesExif);
+        };
+        testImg.onerror = () => {
+            clearTimeout(timeout);
+            _browserAutoRotatesExif = false;
+            debugLog('EXIF检测: 图片加载失败，假设不自动旋转');
+            resolve(false);
+        };
+        // 2x1 JPEG with orientation=6 (rotate 90 CW) → should become 1x2 if auto-rotated
+        testImg.src = 'data:image/jpeg;base64,/9j/4QBiRXhpZgAATU0AKgAAAAgAAgESAAMAAAABAAYAAAEhAAUAAAABAAAAJgAAAAAAAqACAAQAAAABAAAAAqADAAQAAAABAAAAAQAAAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAIDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/AE0A/9k=';
+    });
+}
+
+function compressImage(file, maxDim = 1600) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const arrayBuffer = e.target.result;
+            const orientation = getExifOrientation(arrayBuffer);
+            debugLog('图片EXIF orientation=' + orientation + ' 文件大小=' + Math.round(arrayBuffer.byteLength/1024) + 'KB');
+            const blob = new Blob([arrayBuffer], { type: file.type });
+            const blobUrl = URL.createObjectURL(blob);
+            const img = new Image();
+            img.onload = () => {
+                detectExifAutoRotate().then(autoRotates => {
+                    let srcW = img.width, srcH = img.height;
+                    const needManualRotate = !autoRotates && orientation > 1;
+                    const swapped = needManualRotate && orientation >= 5 && orientation <= 8;
+                    debugLog('原始尺寸=' + srcW + 'x' + srcH + ' 需手动旋转=' + needManualRotate + ' 宽高互换=' + swapped);
+
+                    let outW = swapped ? srcH : srcW;
+                    let outH = swapped ? srcW : srcH;
+                    if (outW > maxDim || outH > maxDim) {
+                        if (outW > outH) { outH = Math.round(outH * maxDim / outW); outW = maxDim; }
+                        else { outW = Math.round(outW * maxDim / outH); outH = maxDim; }
+                    }
+                    debugLog('输出尺寸=' + outW + 'x' + outH);
+                    const canvas = document.createElement('canvas');
+                    canvas.width = outW; canvas.height = outH;
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, outW, outH);
+
+                    if (needManualRotate) {
+                        applyExifOrientation(ctx, orientation, outW, outH);
+                        ctx.drawImage(img, 0, 0, swapped ? outH : outW, swapped ? outW : outH);
+                    } else {
+                        ctx.drawImage(img, 0, 0, outW, outH);
+                    }
+
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                    URL.revokeObjectURL(blobUrl);
+                    debugLog('压缩完成 base64长度=' + Math.round(dataUrl.length/1024) + 'KB');
+                    resolve({ base64: dataUrl.split(',')[1], dataUrl });
+                });
+            };
+            img.onerror = () => { URL.revokeObjectURL(blobUrl); reject(new Error('图片加载失败')); };
+            img.src = blobUrl;
+        };
+        reader.onerror = () => reject(new Error('文件读取失败'));
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+// ===== 预览页AI姓名识别 =====
+async function recognizeName(base64) {
+    const hint = $('name-hint');
+    const input = $('student-name');
+    hint.textContent = '（正在识别姓名...）';
+    input.value = '';
+    input.placeholder = 'AI正在识别中...';
+    try {
+        const prompt = `请仔细观察这张学生书写作品图片，仅识别学生姓名。
+识别规则：
+1. 如果有"姓名"、"姓名："等标签，标签旁边的手写文字就是姓名
+2. 如果没有标签，寻找连续的2-3个汉字，与周围文字有明显间距，与主体内容无语义关联
+3. 通常位于作品顶部、角落或专门填写区域
+4. 符合中国人姓名特征
+严格要求：只有当你非常确定图片中存在学生姓名时才返回。如果不确定、没找到、或图片中没有姓名区域，必须返回空字符串。绝对不要编造或猜测姓名。
+只返回姓名文字本身，不要有引号、标点或其他任何内容。无法识别则只返回空字符串。`;
+        const resp = await callAI([{
+            role: 'user',
+            content: [
+                { type: 'text', text: prompt },
+                { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,' + base64 } }
+            ]
+        }], 100);
+        const name = resp.trim().replace(/["""'''\s]/g, '').replace(/^姓名[:：]?/, '');
+        const fakeName = /^(张三|李四|王五|赵六|某某|学生|姓名|测试|示例|空字符串|无|未知)$/;
+        if (name && name.length >= 2 && name.length <= 4 && !/无法|识别|没有|未找到|空字符/.test(name) && !fakeName.test(name)) {
+            input.value = name;
+            input.placeholder = '输入学生姓名';
+            hint.textContent = '（AI识别，如有错误可直接修改）';
+            state.studentName = name;
+        } else {
+            input.value = '';
+            input.placeholder = '请输入学生姓名';
+            hint.textContent = '（学生姓名读取失败，请手动填写学生姓名）';
+            state.studentName = '';
+        }
+    } catch (e) {
+        input.value = '';
+        input.placeholder = '请输入学生姓名';
+        hint.textContent = '（学生姓名读取失败，请手动填写学生姓名）';
+        state.studentName = '';
+    }
+}
+
+// ===== OCR定位：精确定位问题字的边界框（作业帮思路） =====
+async function locateProblemChars(base64, problems) {
+    if (!problems || problems.length === 0) return [];
+    const charList = problems.map((p, i) => {
+        const m = p.match(/[''"""「]([^''"""」]+)[''"""」]/);
+        return m ? m[1] : `第${i+1}个问题字`;
+    });
+    // === 行列定位法 ===
+    // AI只需回答字在田字格第几行第几列（文字推理任务，AI擅长）
+    // 代码根据行列号计算精确像素坐标
+    const prompt = `观察这张学生练字作品的照片。照片中有一个田字格/练字格。
+
+请回答以下信息：
+1. 田字格共有多少行（拼音行和汉字行都算，从最上面第一行数到最下面最后一行）
+2. 每行有多少个格子（列数）
+3. 对于下面每个需要标记的字，它在第几行、第几列（行从上往下数，列从左往右数，都从1开始）
+   - 注意：拼音行也算一行！例如第1行是拼音，第2行是汉字，第3行是拼音，第4行是汉字...
+   - 如果同一个字出现多次，定位书写问题最明显的那个
+
+需要定位的字（按顺序）：
+${charList.map((c, i) => `${i + 1}. "${c}" — ${problems[i]}`).join('\n')}
+
+输出纯数组格式，第一个元素是 [总行数, 总列数]，后面每个元素是 [字符, 行号, 列号]：
+[[总行数, 总列数], ["字1", 行号, 列号], ["字2", 行号, 列号]]
+
+示例（假设12行8列，"神"在第10行第1列）：
+[[12, 8], ["神", 10, 1], ["州", 4, 1]]
+
+只输出数组，不要其他文字。`;
+
+    try {
+        debugLog('OCR定位开始(行列法): ' + problems.length + '个问题, 字符=' + charList.join(','));
+        const resp = await callAI([{
+            role: 'user',
+            content: [
+                { type: 'text', text: prompt },
+                { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,' + base64 } }
+            ]
+        }], 800);
+        debugLog('OCR行列定位AI返回: ' + resp.substring(0, 600));
+        let jsonStr = resp.trim();
+        const codeMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (codeMatch) jsonStr = codeMatch[1].trim();
+        const startIdx = jsonStr.indexOf('[');
+        const endIdx = jsonStr.lastIndexOf(']');
+        if (startIdx !== -1 && endIdx !== -1) jsonStr = jsonStr.substring(startIdx, endIdx + 1);
+
+        const parsed = JSON.parse(jsonStr);
+        if (!Array.isArray(parsed) || parsed.length < 2) {
+            debugLog('OCR返回格式不符');
+            return [];
+        }
+
+        // 第一个元素: [总行数, 总列数]
+        const meta = parsed[0];
+        const totalRows = meta[0]; // 包含拼音行和汉字行
+        const totalCols = meta[1];
+        debugLog('OCR网格: ' + totalRows + '行 x ' + totalCols + '列');
+
+        if (totalRows < 2 || totalCols < 2 || totalRows > 30 || totalCols > 15) {
+            debugLog('OCR网格尺寸不合理');
+            return [];
+        }
+
+        // 田字格在照片中的位置估算（0-1000归一化坐标）
+        // 通过实测校准：对比AI行列位置与圆圈实际像素位置，反推正确的网格边界
+        // 实测数据（同一张图多次测试）：
+        //   行4→实际y=33%，行7→50%，行9→62%，行11→74%
+        //   反推：GRID_TOP≈120，cellH≈60，12行→GRID_BOTTOM≈840
+        const GRID_LEFT = 140;    // 田字格左边约14%（第1列左边界）- 调整为140以修正水平偏移
+        const GRID_RIGHT = 920;   // 田字格右边约92%
+        const GRID_TOP = 120;     // 田字格上边约12%（标题行下方）
+        const GRID_BOTTOM = 840;  // 田字格下边约84%（最后一行字的下边界）
+
+        const gridW = GRID_RIGHT - GRID_LEFT;
+        const gridH = GRID_BOTTOM - GRID_TOP;
+        const cellW = gridW / totalCols;
+        const cellH = gridH / totalRows;
+
+        debugLog('OCR网格估算: 格子=' + Math.round(cellW) + 'x' + Math.round(cellH) +
+                 ' 网格区域=(' + GRID_LEFT + ',' + GRID_TOP + ')-(' + GRID_RIGHT + ',' + GRID_BOTTOM + ')');
+
+        // 解析每个字的行列位置，转换为坐标
+        const result = [];
+        for (let i = 1; i < parsed.length; i++) {
+            const item = parsed[i];
+            if (!Array.isArray(item) || item.length < 3) continue;
+            const ch = item[0];
+            const row = item[1]; // 1-based行号
+            const col = item[2]; // 1-based列号
+
+            if (row < 1 || row > totalRows || col < 1 || col > totalCols) {
+                debugLog('OCR行列越界: ' + ch + ' row=' + row + ' col=' + col);
+                continue;
+            }
+
+            // 计算该格子的中心坐标和边界框
+            const cx = GRID_LEFT + (col - 0.5) * cellW;
+            const cy = GRID_TOP + (row - 0.5) * cellH;
+            const halfW = cellW * 0.45; // 格子内字的范围约占格子90%
+            const halfH = cellH * 0.45;
+
+            const x1 = Math.round(cx - halfW);
+            const y1 = Math.round(cy - halfH);
+            const x2 = Math.round(cx + halfW);
+            const y2 = Math.round(cy + halfH);
+
+            result.push({ char: ch, x1, y1, x2, y2 });
+            debugLog('OCR定位: ' + ch + ' → 行' + row + '列' + col + ' → (' + x1 + ',' + y1 + ',' + x2 + ',' + y2 + ')');
+        }
+
+        debugLog('OCR行列定位完成: ' + result.length + '个');
+        return result;
+    } catch (e) {
+        debugLog('OCR定位异常: ' + e.message);
+        return [];
+    }
+}
+
+// ===== 图片问题标注（红圈+序号，兼容任意坐标格式） =====
+function annotateImage(dataUrl, areas) {
+    return new Promise((resolve) => {
+        if (!areas || areas.length === 0) { resolve(dataUrl); return; }
+        const img = new Image();
+        img.onload = () => {
+            try {
+                const canvas = document.createElement('canvas');
+                // 手机端Canvas内存限制，最大边长2048px
+                const MAX_SIZE = 2048;
+                let W = img.width, H = img.height;
+                let scale = 1;
+                if (W > MAX_SIZE || H > MAX_SIZE) {
+                    scale = MAX_SIZE / Math.max(W, H);
+                    W = Math.round(W * scale);
+                    H = Math.round(H * scale);
+                }
+                canvas.width = W; canvas.height = H;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, W, H);
+                const NUM_CHARS = '①②③④⑤⑥⑦⑧⑨⑩';
+                const defaultR = Math.round(Math.min(W, H) * 0.03);
+                // 检测坐标的最大范围（AI可能基于原始大图估算，如4096）
+                // 用reduce循环避免flatMap+spread在部分手机浏览器上栈溢出
+                let maxCoord = 1000;
+                areas.forEach(a => {
+                    [a.x1, a.y1, a.x2, a.y2, a.x, a.y, a.cx, a.cy].forEach(v => {
+                        if (v != null && v > maxCoord) maxCoord = v;
+                    });
+                });
+                const coordScale = maxCoord;
+                debugLog('红圈绘制: 图片=' + W + 'x' + H + ' 坐标范围=' + coordScale);
+                areas.forEach((a, idx) => {
+                    let cx, cy, r;
+                    // 格式1: 边界框 {x1,y1,x2,y2}
+                    if (a.x1 != null && a.y1 != null && a.x2 != null && a.y2 != null) {
+                        const px1 = (a.x1 / coordScale) * W, py1 = (a.y1 / coordScale) * H;
+                        const px2 = (a.x2 / coordScale) * W, py2 = (a.y2 / coordScale) * H;
+                        cx = (px1 + px2) / 2;
+                        cy = (py1 + py2) / 2;
+                        r = Math.max(Math.abs(px2 - px1), Math.abs(py2 - py1)) / 2 * 1.15 + 3;
+                    }
+                    // 格式2: 中心点 {x,y} 或 {cx,cy}
+                    else if (a.x != null && a.y != null) {
+                        cx = (a.x / coordScale) * W;
+                        cy = (a.y / coordScale) * H;
+                        r = defaultR;
+                    } else if (a.cx != null && a.cy != null) {
+                        cx = (a.cx / coordScale) * W;
+                        cy = (a.cy / coordScale) * H;
+                        r = defaultR;
+                    } else {
+                        return;
+                    }
+                    if (isNaN(cx) || isNaN(cy)) return;
+                    r = Math.max(r, 12);
+                    // 红色圆圈
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                    ctx.strokeStyle = 'rgba(220, 38, 38, 0.90)';
+                    ctx.lineWidth = Math.max(2, Math.round(r * 0.12));
+                    ctx.stroke();
+                    // 序号标（左上角红底白字）
+                    const numR = Math.max(10, Math.round(r * 0.38));
+                    const nx = cx - r * 0.78;
+                    const ny = cy - r * 0.78;
+                    ctx.beginPath();
+                    ctx.arc(nx, ny, numR, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(220, 38, 38, 0.95)';
+                    ctx.fill();
+                    const fs = Math.max(10, Math.round(numR * 1.3));
+                    ctx.font = `bold ${fs}px sans-serif`;
+                    ctx.fillStyle = '#fff';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(NUM_CHARS[idx] || String(idx + 1), nx, ny);
+                });
+                const out = canvas.toDataURL('image/jpeg', 0.88);
+                resolve(out && out.length > 100 ? out : dataUrl);
+            } catch (e) {
+                console.warn('标注图片失败:', e);
+                resolve(dataUrl);
+            }
+        };
+        img.onerror = () => resolve(dataUrl);
+        img.src = dataUrl;
+    });
+}
+
+// ===== AI 评分 =====
+function buildPrompt(grade) {
+    const r = RUBRICS[grade];
+    let criteria = '';
+    r.dimensions.forEach((d, i) => {
+        criteria += `${i+1}. ${d.name}（满分${d.maxScore}分）\n   评分细则：${d.criteria}\n\n`;
+    });
+    return `你是承德高新区第一小学的资深书写评价专家，以严格著称，精通2022版《语文课程标准》对各年段书写的要求。
+
+请根据以下评分标准，对这张${r.name}学生的书写作品图片进行评分。
+
+【学生姓名识别】
+请仔细观察图片中所有文字，按以下规则识别学生姓名：
+1. 如果有"姓名"、"姓名："、"学生姓名"、"名字"等标签文字，标签旁边的手写文字就是姓名
+2. 如果没有标签，则寻找连续的2-3个汉字，这些文字与周围其他书写内容在空间上有明显间距
+3. 这些独立的2-3个字与作品主体内容不存在语义关联（不是句子或词组的一部分）
+4. 通常位于作品的顶部、右上角、左上角、底部或角落位置
+5. 符合中国人姓名特征（常见姓氏+名字的组合）
+只要发现符合以上特征的独立2-3字文字，就将其识别为姓名。无法识别则返回空字符串。
+
+【评分标准】${r.stage} · ${r.name}（满分10分）
+课标对标要求：${r.note}
+
+${criteria}
+【等级划分】
+- 8.5-10分：优秀（仅极少数书写特别出色的作品）
+- 7-8.4分：良好
+- 5-6.9分：合格
+- 5分以下：待改进
+
+【严格评分原则 - 极其重要】
+1. 采用最高标准最严要求，大幅压低分数
+2. 满分几乎不可能获得，必须是完美无瑕的作品
+3. 普通水平的作品应在4-6分区间
+4. 即使是较好的作品，也很难超过7分
+5. 只有极其出色、明显优于同年级的作品才能获得8分以上
+6. 每个维度都要吹毛求疵，任何小问题都要扣分
+7. 宁可评分过低，绝不评分虚高
+8. 对于每个维度，先假设满分，然后根据发现的每个问题扣除0.5-1分
+
+【书写专业评价用语参考 - 请在评语和建议中积极使用以下专业术语】
+笔画指导：起笔轻行笔稳收笔要顿；笔画有轻重有粗细才有精神；横画略向右上斜，起笔轻顿行笔平稳收笔稍顿；竖画要垂直像一根柱子立得正；垂露竖收笔顿悬针竖出尖要干脆；撇画由重到轻慢慢出尖，行笔流畅不抖不弯弧度自然；捺画从轻到重末端顿笔出锋，一波三折舒展大方；点像小雨滴小巧圆润有精神；折角要方顿笔再转向；钩要短小精悍顿笔再出钩。
+间架结构：重心平稳不歪不倒；疏密匀称不挤不松；中心收紧外围舒展；穿插避让互不打架；左窄右宽左收右放；上紧下松上窄下宽；上下对正中心一条线；外框方正内部居中；主笔突出字形精神。
+纠错用语：横太平了稍斜一点更好看；竖画歪了再直一点；撇太弯了要挺直一些；捺没写出脚再顿一下；字歪了重心往中间调；太松散了收紧一点；太拥挤了拉开间距；主笔没写出来再舒展些。
+
+【评分要求】
+1. 仔细观察书写作品图像中的每一个视觉细节
+2. 严格按照上述评分标准打分，每个维度可以打小数分（精确到0.5分）
+3. 总分为所有维度分数之和（满分10分）
+4. 总体评语要客观公正，既肯定优点又指出不足，适合小学${r.name}学生阅读
+5. 请使用专业的书写指导用语，让评价更具指导性和专业性
+
+【图文区分 - 重要】
+如果作品中包含手绘插图、简笔画、装饰性图案等非文字内容，请自动忽略这些图片部分，只对手写文字进行评分分析。不要对图画部分进行任何评价。
+
+【存在问题要求 - 极其重要】
+1. 最多列出6个问题条目，抓最大的问题来分析
+2. 每个条目必须指出具体哪个字的哪一笔存在什么问题、应该怎么写、以及这样写的原因（从笔画规则或间架结构方面分析）
+3. 每个条目控制在25-35个字左右
+4. 不同条目必须分析不同的字，不要重复分析同一个字
+5. 优先选择问题最突出、最具代表性的字来分析
+6. 格式示例："'横'字横画过平，应略向右上倾斜约5度，横画微斜才显精神稳重"
+
+【改进建议要求】
+1. 给出2-4条针对性的、可操作的改进建议
+2. 使用上述专业书写指导术语
+3. 建议应面向学生日常练习
+
+【输出要求】
+请严格按以下JSON格式输出，不要包含markdown标记或其他任何文字：
+{
+  "studentName": "识别到的学生姓名，无法识别则为空字符串",
+  "dimensions": [
+    {"name": "维度名称", "score": 分数, "maxScore": 满分, "comment": "该维度简短评语"}
+  ],
+  "totalScore": 总分,
+  "level": "优秀或良好或合格或待改进",
+  "problems": ["'某'字某笔画存在什么问题，应该怎么写(25-35字)", "问题2"],
+  "suggestions": ["改进建议1", "改进建议2"],
+  "overallComment": "总体评语2-3句话"
+}`;
+}
+
+async function callAI(messages, maxTokens) {
+    const resp = await fetch(API_ENDPOINT.replace(/\/+$/,'') + '/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + API_KEY },
+        body: JSON.stringify({ model: API_MODEL, messages, max_tokens: maxTokens || 2000, temperature: 0.3 })
+    });
+    if (!resp.ok) {
+        let detail = ''; try { detail = await resp.text(); } catch {}
+        if (resp.status === 401) throw new Error('API Key 无效');
+        if (resp.status === 429) throw new Error('请求过于频繁，请稍后再试');
+        throw new Error('API请求失败(' + resp.status + ')：' + detail.substring(0, 200));
+    }
+    const data = await resp.json();
+    return data.choices[0].message.content;
+}
+
+function parseAIResponse(text) {
+    let jsonStr = text.trim();
+    const match = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (match) jsonStr = match[1].trim();
+    const start = jsonStr.indexOf('{'); const end = jsonStr.lastIndexOf('}');
+    if (start !== -1 && end !== -1) jsonStr = jsonStr.substring(start, end + 1);
+    const result = JSON.parse(jsonStr);
+    if (!result.dimensions || !Array.isArray(result.dimensions)) throw new Error('返回格式异常');
+    const rubric = RUBRICS[state.grade];
+    let total = 0;
+    result.dimensions.forEach((d, i) => {
+        if (rubric.dimensions[i]) { d.maxScore = rubric.dimensions[i].maxScore; d.name = rubric.dimensions[i].name; }
+        const orig = Math.max(0, Math.min(d.score, d.maxScore));
+        const deduction = d.maxScore - orig;
+        d.score = Math.round(Math.max(0, d.maxScore - deduction * 1.5) * 10) / 10;
+        total += d.score;
+    });
+    result.totalScore = Math.round(total * 10) / 10;
+    if (result.totalScore >= 8.5) result.level = '优秀';
+    else if (result.totalScore >= 7) result.level = '良好';
+    else if (result.totalScore >= 5) result.level = '合格';
+    else result.level = '待改进';
+    if (!result.problems) result.problems = [];
+    if (!result.suggestions) result.suggestions = [];
+    if (!result.overallComment) result.overallComment = '';
+    if (!result.studentName) result.studentName = '';
+    return result;
+}
+
+async function startScoring() {
+    state.studentName = $('student-name').value.trim();
+    showScreen('loading');
+    try {
+        const prompt = buildPrompt(state.grade);
+        const content = await callAI([{
+            role: 'user',
+            content: [
+                { type: 'text', text: prompt },
+                { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,' + state.imageBase64 } }
+            ]
+        }]);
+        const result = parseAIResponse(content);
+        if (result.studentName && !state.studentName) {
+            // 评分AI返回的姓名也要过滤占位名
+            const fakeName = /^(张三|李四|王五|赵六|某某|学生|姓名|测试|示例|空字符串|无|未知)$/;
+            if (!fakeName.test(result.studentName) && !/无法|识别|没有|未找到/.test(result.studentName)) {
+                state.studentName = result.studentName;
+            }
+        }
+        lastResult = result;
+        debugLog('评分完成: ' + result.totalScore + '分, problems=' + (result.problems ? result.problems.length : 0));
+        // 标注问题区域 —— 始终使用专用OCR定位（比评分AI自带坐标更精确）
+        let areas = [];
+        if (result.problems && result.problems.length > 0) {
+            $('screen-loading').querySelector('.loading-text').textContent = '正在定位问题字...';
+            try {
+                areas = await locateProblemChars(state.imageBase64, result.problems);
+                debugLog('OCR定位返回 ' + areas.length + ' 个区域: ' + JSON.stringify(areas));
+            } catch (e) {
+                debugLog('OCR定位异常: ' + e.message);
+            }
+        }
+        debugLog('准备绘制红圈: ' + areas.length + ' 个区域');
+        if (areas.length > 0) {
+            state.annotatedDataUrl = await annotateImage(state.imageDataUrl, areas);
+            debugLog('红圈绘制完成, 图片长度=' + Math.round(state.annotatedDataUrl.length / 1024) + 'KB');
+        } else {
+            state.annotatedDataUrl = state.imageDataUrl;
+            debugLog('无有效红圈区域，使用原图');
+        }
+        // 保存历史
+        await saveToHistory({
+            time: Date.now(),
+            teacher: state.teacher,
+            grade: state.grade,
+            classNum: state.classNum,
+            student: state.studentName || result.studentName || '',
+            score: result.totalScore,
+            level: result.level,
+            dimensions: result.dimensions,
+            problems: result.problems,
+            suggestions: result.suggestions,
+            comment: result.overallComment
+        });
+        displayResult(result);
+    } catch (err) {
+        $('error-detail').textContent = err.message;
+        showScreen('error');
+    }
+}
+
+// ===== 显示结果 =====
+function displayResult(result) {
+    // 姓名只信任预览页识别结果和用户手动输入，不用评分AI返回值
+    if (state.studentName) {
+        $('result-student-name').value = state.studentName;
+    } else {
+        $('result-student-name').value = '';
+    }
+    $('result-grade-badge').textContent = GRADE_NAMES[state.grade] + '年级' + state.classNum + '班';
+    $('result-thumb').src = state.annotatedDataUrl || state.imageDataUrl;
+    const score = result.totalScore;
+    $('result-score').textContent = score;
+    const circ = 2 * Math.PI * 58;
+    const fg = $('score-ring-fg');
+    fg.setAttribute('stroke-dasharray', circ);
+    fg.setAttribute('stroke-dashoffset', circ);
+    let color = 'var(--primary)', lc = 'level-good';
+    if (result.level === '优秀') { color = 'var(--success)'; lc = 'level-excellent'; }
+    else if (result.level === '良好') { color = 'var(--primary)'; lc = 'level-good'; }
+    else if (result.level === '合格') { color = 'var(--warning)'; lc = 'level-pass'; }
+    else { color = 'var(--danger)'; lc = 'level-improve'; }
+    fg.setAttribute('stroke', color); $('result-score').style.color = color;
+    requestAnimationFrame(() => { setTimeout(() => { fg.setAttribute('stroke-dashoffset', circ - (score/10)*circ); }, 100); });
+    $('result-level').textContent = result.level; $('result-level').className = 'score-level ' + lc;
+    if (result.overallComment) { $('result-overall').textContent = result.overallComment; $('result-overall').style.display = 'block'; }
+    else { $('result-overall').style.display = 'none'; }
+    const dimEl = $('result-dimensions'); dimEl.innerHTML = '';
+    result.dimensions.forEach(d => {
+        const pct = Math.round((d.score / d.maxScore) * 100);
+        let bc = pct >= 80 ? 'var(--success)' : pct >= 50 ? 'var(--warning)' : 'var(--danger)';
+        dimEl.innerHTML += `<div class="dimension-item"><div class="dimension-header"><span class="dimension-name">${d.name}</span><span class="dimension-score">${d.score}/${d.maxScore}</span></div><div class="dimension-bar"><div class="dimension-bar-fill" style="width:${pct}%;background:${bc}"></div></div>${d.comment ? '<div class="dimension-comment">'+d.comment+'</div>' : ''}</div>`;
+    });
+    const probEl = $('result-problems'); probEl.innerHTML = '';
+    const NUM_CHARS = '①②③④⑤⑥⑦⑧⑨⑩';
+    if (result.problems.length > 0) { result.problems.forEach((p, i) => { probEl.innerHTML += '<li><strong>' + (NUM_CHARS[i]||String(i+1)) + '</strong> '+escapeHtml(p)+'</li>'; }); $('result-problems-section').style.display = 'block'; } else { $('result-problems-section').style.display = 'none'; }
+    const sugEl = $('result-suggestions'); sugEl.innerHTML = '';
+    if (result.suggestions.length > 0) { result.suggestions.forEach(s => { sugEl.innerHTML += '<li>'+escapeHtml(s)+'</li>'; }); $('result-suggestions-section').style.display = 'block'; } else { $('result-suggestions-section').style.display = 'none'; }
+    showScreen('result');
+}
+
+// ===== 图片查看器（支持双指缩放、拖拽、双击放大） =====
+let viewerState = { scale: 1, x: 0, y: 0, startDist: 0, startScale: 1, startX: 0, startY: 0, panStartX: 0, panStartY: 0, isPanning: false, lastTap: 0 };
+
+function openImageViewer(src) {
+    const viewer = $('image-viewer');
+    const img = $('viewer-img');
+    img.src = src;
+    viewerState = { scale: 1, x: 0, y: 0, startDist: 0, startScale: 1, startX: 0, startY: 0, panStartX: 0, panStartY: 0, isPanning: false, lastTap: 0 };
+    img.style.transform = '';
+    viewer.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    // 等图片加载后居中
+    img.onload = () => { resetViewerTransform(); };
+    if (img.complete) resetViewerTransform();
+}
+function closeImageViewer() {
+    $('image-viewer').style.display = 'none';
+    document.body.style.overflow = '';
+}
+function resetViewerTransform() {
+    viewerState.scale = 1; viewerState.x = 0; viewerState.y = 0;
+    applyViewerTransform();
+}
+function applyViewerTransform() {
+    const img = $('viewer-img');
+    img.style.transformOrigin = '0 0';
+    img.style.transform = `translate(${viewerState.x}px, ${viewerState.y}px) scale(${viewerState.scale})`;
+}
+function getTouchDist(t1, t2) {
+    return Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+}
+function getTouchCenter(t1, t2) {
+    return { x: (t1.clientX + t2.clientX) / 2, y: (t1.clientY + t2.clientY) / 2 };
+}
+
+// 触摸事件绑定
+(function initViewerTouch() {
+    let pinching = false;
+    let pinchCenterX = 0, pinchCenterY = 0;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const viewer = document.getElementById('image-viewer');
+        const img = document.getElementById('viewer-img');
+        if (!viewer || !img) return;
+
+        viewer.addEventListener('touchstart', (e) => {
+            if (viewer.style.display === 'none') return;
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                pinching = true;
+                viewerState.startDist = getTouchDist(e.touches[0], e.touches[1]);
+                viewerState.startScale = viewerState.scale;
+                const center = getTouchCenter(e.touches[0], e.touches[1]);
+                pinchCenterX = center.x;
+                pinchCenterY = center.y;
+            } else if (e.touches.length === 1) {
+                // 双击检测
+                const now = Date.now();
+                if (now - viewerState.lastTap < 300) {
+                    e.preventDefault();
+                    if (viewerState.scale > 1.1) {
+                        resetViewerTransform();
+                    } else {
+                        // 双击放大到2.5倍，以点击位置为中心
+                        const rect = img.getBoundingClientRect();
+                        const cx = e.touches[0].clientX;
+                        const cy = e.touches[0].clientY;
+                        const newScale = 2.5;
+                        viewerState.x = cx - (cx - rect.left) / viewerState.scale * newScale;
+                        viewerState.y = cy - (cy - rect.top) / viewerState.scale * newScale;
+                        viewerState.scale = newScale;
+                        applyViewerTransform();
+                    }
+                    viewerState.lastTap = 0;
+                    return;
+                }
+                viewerState.lastTap = now;
+                // 拖拽开始
+                if (viewerState.scale > 1.05) {
+                    viewerState.isPanning = true;
+                    viewerState.panStartX = e.touches[0].clientX - viewerState.x;
+                    viewerState.panStartY = e.touches[0].clientY - viewerState.y;
+                    e.preventDefault();
+                }
+            }
+        }, { passive: false });
+
+        viewer.addEventListener('touchmove', (e) => {
+            if (viewer.style.display === 'none') return;
+            if (e.touches.length === 2 && pinching) {
+                e.preventDefault();
+                const dist = getTouchDist(e.touches[0], e.touches[1]);
+                const center = getTouchCenter(e.touches[0], e.touches[1]);
+                let newScale = viewerState.startScale * (dist / viewerState.startDist);
+                newScale = Math.max(0.5, Math.min(newScale, 6));
+                // 缩放时以双指中心为锚点
+                const rect = img.getBoundingClientRect();
+                const imgX = (pinchCenterX - viewerState.x) / viewerState.scale;
+                const imgY = (pinchCenterY - viewerState.y) / viewerState.scale;
+                viewerState.x = center.x - imgX * newScale;
+                viewerState.y = center.y - imgY * newScale;
+                viewerState.scale = newScale;
+                pinchCenterX = center.x;
+                pinchCenterY = center.y;
+                applyViewerTransform();
+            } else if (e.touches.length === 1 && viewerState.isPanning) {
+                e.preventDefault();
+                viewerState.x = e.touches[0].clientX - viewerState.panStartX;
+                viewerState.y = e.touches[0].clientY - viewerState.panStartY;
+                applyViewerTransform();
+            }
+        }, { passive: false });
+
+        viewer.addEventListener('touchend', (e) => {
+            if (e.touches.length < 2) { pinching = false; }
+            if (e.touches.length === 0) {
+                viewerState.isPanning = false;
+                // 缩放小于1时回弹
+                if (viewerState.scale < 1) { resetViewerTransform(); }
+            }
+        });
+
+        // 点击背景关闭（仅在未缩放时）
+        viewer.addEventListener('click', (e) => {
+            if (e.target === viewer && viewerState.scale <= 1.05) {
+                closeImageViewer();
+            }
+        });
+    });
+})();
+
+// ===== 分享功能 =====
+function buildShareText() {
+    const sn = $('result-student-name').value.trim() || '未知学生';
+    const gn = GRADE_NAMES[state.grade] + '年级' + state.classNum + '班';
+    let t = `【书写评分报告】\n学生：${sn}（${gn}）\n得分：${lastResult.totalScore}/10分（${lastResult.level}）\n\n`;
+    if (lastResult.dimensions) { t += '各维度得分：\n'; lastResult.dimensions.forEach(d => { t += `  ${d.name}：${d.score}/${d.maxScore}分\n`; }); t += '\n'; }
+    if (lastResult.problems && lastResult.problems.length) { t += '存在问题：\n'; lastResult.problems.forEach(p => { t += `  · ${p}\n`; }); t += '\n'; }
+    if (lastResult.suggestions && lastResult.suggestions.length) { t += '改进建议：\n'; lastResult.suggestions.forEach(s => { t += `  · ${s}\n`; }); t += '\n'; }
+    t += '—— 承德高新区第一小学书写评分系统';
+    return t;
+}
+function isWechat() { return /micromessenger/i.test(navigator.userAgent); }
+
+function doShare(title, text, fileOrUrl) {
+    // 微信浏览器内：使用 WeixinJSBridge 直接调起发送给朋友
+    if (isWechat() && typeof WeixinJSBridge !== 'undefined' && !(fileOrUrl instanceof File)) {
+        WeixinJSBridge.invoke('sendAppMessage', {
+            title: title || '书写评分',
+            desc: text || '',
+            link: location.href,
+            img_url: ''
+        }, function(res) {
+            if (res.err_msg === 'send_app_msg:ok') showToast('分享成功');
+        });
+        return;
+    }
+    // 非微信环境或支持 navigator.share 的浏览器
+    if (navigator.share) {
+        const shareData = { title };
+        if (fileOrUrl instanceof File) {
+            if (navigator.canShare && navigator.canShare({ files: [fileOrUrl] })) {
+                shareData.files = [fileOrUrl];
+            } else {
+                downloadBlob(fileOrUrl, fileOrUrl.name);
+                showToast('已下载文件，请在文件管理器中分享到微信');
+                return;
+            }
+        } else {
+            shareData.text = text;
+        }
+        navigator.share(shareData).catch(() => {
+            if (text) copyText(text);
+        });
+    } else if (isWechat()) {
+        // 微信浏览器但 WeixinJSBridge 尚未就绪
+        if (fileOrUrl instanceof File) {
+            downloadBlob(fileOrUrl, fileOrUrl.name);
+            showToast('文件已下载，可在文件管理器中分享');
+        } else if (text) {
+            copyText(text, '已复制，请点击右上角"..."转发给好友');
+        }
+    } else {
+        if (fileOrUrl instanceof File) {
+            downloadBlob(fileOrUrl, fileOrUrl.name);
+            showToast('已下载文件，请手动分享到微信');
+        } else if (text) { copyText(text); }
+        else showToast('当前浏览器不支持直接分享，请使用手机浏览器打开');
+    }
+}
+function shareResult() {
+    doShare('书写评分报告', buildShareText());
+}
+function shareAppLink() {
+    const url = location.href;
+    if (navigator.share) {
+        navigator.share({ title: '高新区一小学生书写水平打分系统', text: '承德高新区第一小学书写评分系统，点击链接使用：', url }).catch(() => copyText(url, '链接已复制，可发送给微信好友'));
+    } else { copyText(url, '链接已复制，可发送给微信好友'); }
+}
+function shareReport() {
+    const text = $('report-content').textContent;
+    doShare('书写教学分析报告', text);
+}
+function copyText(text, msg) {
+    msg = msg || '已复制到剪贴板，可粘贴到微信分享';
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => showToast(msg)).catch(() => fallbackCopy(text, msg));
+    } else { fallbackCopy(text, msg); }
+}
+function fallbackCopy(text, msg) {
+    const ta = document.createElement('textarea'); ta.value = text; ta.style.cssText = 'position:fixed;left:-9999px';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); showToast(msg); } catch { showToast('复制失败'); }
+    document.body.removeChild(ta);
+}
+
+// ===== 历史评分页 =====
+async function showHistory() {
+    showScreen('history');
+    const wrap = $('history-table-wrap');
+    wrap.innerHTML = '<div class="history-empty">加载中...</div>';
+    const history = await getHistoryAsync();
+    // 统计
+    const statsEl = $('history-stats');
+    const count = history.length;
+    const avg = count ? (history.reduce((s, r) => s + r.score, 0) / count).toFixed(1) : '-';
+    const excellent = history.filter(r => r.level === '优秀').length;
+    statsEl.innerHTML = `
+        <div class="stat-card"><div class="stat-num">${count}</div><div class="stat-label">评分总数</div></div>
+        <div class="stat-card"><div class="stat-num">${avg}</div><div class="stat-label">平均分</div></div>
+        <div class="stat-card"><div class="stat-num">${excellent}</div><div class="stat-label">优秀人次</div></div>`;
+    // 表格（按时间正序：最早的在前）
+    if (count === 0) {
+        wrap.innerHTML = '<div class="history-empty">暂无评分记录</div>';
+    } else {
+        const sorted = [...history].sort((a, b) => a.time - b.time);
+        let html = '<table class="history-table"><thead><tr><th>序号</th><th>时间</th><th>教师</th><th>年级班级</th><th>学生</th><th>评分</th><th>等级</th></tr></thead><tbody>';
+        sorted.forEach((r, i) => {
+            html += `<tr><td>${i+1}</td><td>${formatTime(r.time)}</td><td>${escapeHtml(r.teacher)}</td><td>${GRADE_NAMES[r.grade]}年级${r.classNum}班</td><td>${escapeHtml(r.student||'未知')}</td><td>${r.score}</td><td>${r.level}</td></tr>`;
+        });
+        html += '</tbody></table>';
+        wrap.innerHTML = html;
+    }
+}
+
+// ===== Excel导出 =====
+async function exportExcel() {
+    const history = await getHistoryAsync();
+    if (history.length === 0) { showToast('暂无评分记录'); return; }
+    const rows = [['序号', '评分时间', '教师姓名', '年级', '班级', '学生姓名', '评分', '等级']];
+    history.forEach((r, i) => {
+        rows.push([i+1, formatTime(r.time), r.teacher, GRADE_NAMES[r.grade]+'年级', r.classNum+'班', r.student||'未知', r.score, r.level]);
+    });
+    try {
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        ws['!cols'] = [{wch:5},{wch:18},{wch:10},{wch:8},{wch:6},{wch:10},{wch:6},{wch:8}];
+        XLSX.utils.book_append_sheet(wb, ws, '评分记录');
+        // 学生汇总sheet
+        const studentMap = {};
+        history.forEach(r => {
+            const key = r.student || '未知';
+            if (!studentMap[key]) studentMap[key] = { name: key, scores: [], count: 0 };
+            studentMap[key].scores.push(r.score);
+            studentMap[key].count++;
+        });
+        const summaryRows = [['学生姓名', '评分次数', '平均分', '最高分', '最低分', '最近等级']];
+        Object.values(studentMap).forEach(s => {
+            const avg = (s.scores.reduce((a,b)=>a+b,0) / s.count).toFixed(1);
+            const max = Math.max(...s.scores);
+            const min = Math.min(...s.scores);
+            const latest = history.find(r => (r.student||'未知') === s.name).level;
+            summaryRows.push([s.name, s.count, parseFloat(avg), max, min, latest]);
+        });
+        const ws2 = XLSX.utils.aoa_to_sheet(summaryRows);
+        ws2['!cols'] = [{wch:10},{wch:8},{wch:8},{wch:8},{wch:8},{wch:10}];
+        XLSX.utils.book_append_sheet(wb, ws2, '学生汇总');
+        const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+        const fileName = '书写评分记录_' + GRADE_NAMES[state.grade] + '年级' + state.classNum + '班.xlsx';
+        const dataUrl = 'data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,' + wbout;
+        // 尝试 navigator.share（部分安卓浏览器支持）
+        const wbArr = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        const blob = new Blob([wbArr], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const file = new File([blob], fileName, { type: blob.type });
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+                await navigator.share({ files: [file], title: fileName });
+                return;
+            } catch (e) { /* 用户取消或不支持，降级到对话框 */ }
+        }
+        // 通用方案：弹出下载对话框，支持所有浏览器包括微信
+        const dlLink = document.getElementById('dl-link');
+        dlLink.href = dataUrl;
+        dlLink.download = fileName;
+        dlLink.textContent = '点击下载：' + fileName;
+        document.getElementById('dl-hint').textContent =
+            '共 ' + history.length + ' 条记录，包含"评分记录"和"学生汇总"两个表格';
+        document.getElementById('dl-modal').style.display = 'flex';
+    } catch (e) {
+        showToast('导出失败：' + e.message);
+    }
+}
+function downloadBlob(blob, name) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 100);
+}
+
+// ===== 报告文本清理 =====
+function cleanReportText(text) {
+    return text
+        .replace(/\*\*/g, '')           // 去除 **加粗**
+        .replace(/\*/g, '')             // 去除 *斜体*
+        .replace(/^#{1,6}\s*/gm, '')    // 去除 # 标题符号
+        .replace(/^---+$/gm, '')        // 去除 --- 分隔线
+        .replace(/<br\s*\/?>/gi, '\n')  // <br> 转换行
+        .replace(/<[^>]+>/g, '')        // 去除其他HTML标签
+        .replace(/^[-·•]\s*/gm, '')     // 去除列表符号 - · •
+        .replace(/\n{3,}/g, '\n\n')     // 多余空行合并
+        .trim();
+}
+
+// ===== 生成教学分析报告 =====
+async function generateReport() {
+    const history = await getHistoryAsync();
+    if (history.length < 2) { showToast('至少需要2条评分记录才能生成报告'); return; }
+    showScreen('loading');
+    $('screen-loading').querySelector('.loading-text').textContent = '正在生成教学分析报告...';
+    $('screen-loading').querySelector('.loading-hint').textContent = 'AI正在分析所有评分数据，请稍候';
+    try {
+        // 构建数据摘要
+        const studentMap = {};
+        history.forEach(r => {
+            const key = r.student || '未知';
+            if (!studentMap[key]) studentMap[key] = { name: key, records: [] };
+            studentMap[key].records.push({ time: formatTime(r.time), score: r.score, level: r.level, grade: GRADE_NAMES[r.grade]+'年级', class: r.classNum+'班', dims: r.dimensions, problems: r.problems, suggestions: r.suggestions });
+        });
+        let dataSummary = `共${history.length}次评分，涉及${Object.keys(studentMap).length}名学生。\n\n`;
+        Object.values(studentMap).forEach(s => {
+            const scores = s.records.map(r => r.score);
+            const avg = (scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1);
+            dataSummary += `【${s.name}】评分${s.records.length}次，平均${avg}分，最高${Math.max(...scores)}分，最低${Math.min(...scores)}分\n`;
+            s.records.forEach(r => {
+                dataSummary += `  ${r.time} ${r.grade}${r.class} ${r.score}分(${r.level})`;
+                if (r.problems && r.problems.length) dataSummary += ` 问题：${r.problems.join('；')}`;
+                dataSummary += '\n';
+            });
+        });
+        // 收集所有问题
+        const allProblems = [];
+        history.forEach(r => { if (r.problems) r.problems.forEach(p => allProblems.push(p)); });
+        dataSummary += `\n所有评分中出现的问题汇总：\n${allProblems.join('\n')}\n`;
+
+        const prompt = `你是承德高新区第一小学的资深书写教学指导专家。请根据以下学生书写评分数据，生成一份面向教师的书写教学分析报告。
+
+【评分数据】
+${dataSummary}
+
+【报告要求】
+请生成一份结构清晰的教学分析报告，包含以下部分：
+
+一、整体概况
+- 评分总人次、学生人数、平均分、各等级分布
+
+二、学生书写水平横向对比
+- 哪些学生表现突出，哪些需要重点关注
+- 分析班级整体书写水平在什么层次
+
+三、共性问题分析
+- 从所有评分数据中提炼出最普遍的3-5个共性问题
+- 每个问题的出现频率和严重程度
+
+四、书写教学改进建议
+- 针对共性问题，给出3-5条具体可操作的教学建议
+- 建议应面向教师的日常教学指导，而非针对单个学生
+- 包括课堂教学方法、练习设计、评价方式等方面
+
+五、分层辅导建议
+- 针对不同水平层次的学生群体，给出分层辅导方案
+
+请直接输出报告正文，不要使用JSON格式。
+【格式要求 - 极其重要】
+1. 禁止使用任何markdown格式符号，包括但不限于：**加粗**、---分隔线、<br>换行标签、#标题符号、*列表符号
+2. 用自然语言段落书写，段落之间用空行分隔
+3. 用"一、二、三、四、五"作为大标题序号，用"1. 2. 3."作为小标题序号
+4. 不要使用任何特殊排版符号，保持朴素通顺的文字风格`;
+
+        const reportText = await callAI([{ role: 'user', content: prompt }], 3000);
+        $('report-content').textContent = cleanReportText(reportText);
+        // 恢复loading文字
+        $('screen-loading').querySelector('.loading-text').textContent = '正在分析书写作品...';
+        $('screen-loading').querySelector('.loading-hint').textContent = 'AI正在仔细评估每个维度，请稍候';
+        showScreen('report');
+    } catch (err) {
+        $('screen-loading').querySelector('.loading-text').textContent = '正在分析书写作品...';
+        $('screen-loading').querySelector('.loading-hint').textContent = 'AI正在仔细评估每个维度，请稍候';
+        showToast('生成报告失败：' + err.message);
+        showScreen('history');
+    }
+}
+
+// ===== 初始化 =====
+function init() {
+    tryAutoLogin();
+    $('login-password').addEventListener('keyup', e => { if (e.key === 'Enter') handleLogin(); });
+    $('login-name').addEventListener('keyup', e => { if (e.key === 'Enter') $('login-password').focus(); });
+    ['login-name','login-password','login-grade','login-class'].forEach(id => {
+        $(id).addEventListener('input', () => $('login-error').classList.remove('show'));
+    });
+    // 全局粘贴监听（在主页时可直接粘贴图片）
+    document.addEventListener('paste', async (e) => {
+        if (!$('screen-main').classList.contains('active') && !$('screen-preview').classList.contains('active')) return;
+        const items = e.clipboardData && e.clipboardData.items;
+        if (!items) return;
+        for (const item of items) {
+            if (item.type.startsWith('image/')) {
+                e.preventDefault();
+                const file = item.getAsFile();
+                if (!file) return;
+                try {
+                    const { base64, dataUrl } = await compressImage(file);
+                    state.imageBase64 = base64; state.imageDataUrl = dataUrl;
+                    $('preview-img').src = dataUrl;
+                    $('preview-grade-badge').textContent = GRADE_NAMES[state.grade] + '年级' + state.classNum + '班';
+                    $('student-name').value = '';
+                    $('name-hint').textContent = '';
+                    showScreen('preview');
+                    recognizeName(base64);
+                } catch (err) { showToast('粘贴图片失败'); }
+                return;
+            }
+        }
+    });
+}
+init();
+</script>
+</body>
+</html>
